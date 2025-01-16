@@ -7,7 +7,7 @@ A "model type" which predicts which patients will develop sepsis based on D-dime
 
 This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge, January 2025.
 
-Packages used: pandas, numpy, collections, scikit-learn, tqdm.
+Packages used: pandas, numpy, collections, scikit-learn, tqdm, seaborn, matplotlib, joblib, datetime.
 
 ## Further Description:
 Preprocessing:
