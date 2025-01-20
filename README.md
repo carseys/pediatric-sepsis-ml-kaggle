@@ -13,7 +13,7 @@ Packages used: pandas, numpy, collections, scikit-learn, tqdm, seaborn, matplotl
 Preprocessing:
 * Removing duplicate entries.
 * Adding 'uid' to all data, a universal ID, based on date/time stamp and person ID.
-* For the patient demographics: converting birthdays and visit start days into datetime to judge age in months at every patient interaction point (via datetimes per interaction points) as well as possibility of adding variable for length of stay (most recent interaction from visit code minus visit start date)
+* For the patient demographics: converting birthdays and visit start dates into datetime to judge age in months at every patient interaction point (via datetimes per interaction points) as well as possibility of adding variable for length of stay (most recent interaction from visit code minus visit start date)
 * For measurement meds data: removing duplicates, replacing unreasonable (>46 degrees C) body temperature measurements with NaN
 
 Previously done:
