@@ -20,6 +20,7 @@ Packages used: pandas, numpy, collections, scikit-learn, tqdm, seaborn, matplotl
 * Outer joining tables based on uid for explanatory variables with time-based measurements.
 * Outer joining with patient demographics based on visit occurrence ID.
 * Left joining with sepsis data as left table, with explanatory variables as right
+* Re-adding person ids to all rows based on UID
 
 Previously done:
 * Encoding categorical data : drugsexposure (drugs, routes), devices, uid, gender
