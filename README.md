@@ -4,7 +4,7 @@ Early Detection of Pediatric Sepsis ML Modeling
 
 A "model type" which predicts which patients will develop sepsis based on D-dimensional data about their health. For this project, I preprocessed data, developed a model, and visualized model efficacy.
 
-This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge, January 2025.
+This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge ([link](https://www.kaggle.com/competitions/phems-hackathon-early-sepsis-prediction/l)), January 2025.
 
 Packages used: pandas, numpy, collections, scikit-learn, tqdm, seaborn, matplotlib, joblib, datetime.
 
