@@ -22,5 +22,5 @@ Packages used: pandas, numpy, collections, scikit-learn, tqdm, seaborn, matplotl
 * Left joining with sepsis data as left table, with explanatory variables as right
 
 Previously done:
-* Encoding categorical data.
+* Encoding categorical data : drugsexposure (drugs, routes), devices, uid, gender
 * Splitting the labeled train data into training and test. The provided test data isn't labeled because it is used to score for the leaderboard/competition. Thus the training data is split into train and test so that it is still possible to test the model with labels known to evaluate performance and prevent overfitting.
