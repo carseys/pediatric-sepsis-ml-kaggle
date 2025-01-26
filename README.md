@@ -16,6 +16,7 @@ Packages used: pandas, numpy, collections, scikit-learn, tqdm, seaborn, matplotl
 * For measurement meds data: removing duplicates, replacing unreasonable (>46 degrees C) body temperature measurements with NaN
 * For the drugs exposure data, combining rows that represent the same patient/doctor interaction to have only one row per interaction, e.g. there could be four rows for one interaction, each showing a different drug administered with the corresponding administration method. The new row would list all four drugs and all administration methods used.
 * For the measurement labs data, removing rows that only have NaN (this removed 1063 rows including some duplicates) and combining rows from the same timestamp for one patient to have one row per instance of time knowing lab measurements about a patient (only one such row).
+* For the sepsis label data, removing rows that have no timestamp.
 * Outer joining tables based on uid for explanatory variables with time-based measurements.
 * Outer joining with patient demographics based on visit occurrence ID.
 * Left joining with sepsis data as left table, with explanatory variables as right
