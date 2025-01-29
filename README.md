@@ -23,6 +23,9 @@ Packages used: pandas, numpy, collections, scikit-learn, tqdm, seaborn, matplotl
 * Re-adding person ids to all rows based on UID
 * Adding age in months to all rows based on timedate present in UID.
 * Adding gender to all rows based on person_id within UID.
-* Encoding categorical data : drugsexposure (drugs, routes), devices, uid, gender
+* Encoding categorical data : drugsexposure (drugs, routes), devices, uid, gender.
+* Removing columns with <15000 values.
+* kNN-imputation within person_id.
+* Smote to account for imbalance in sepsis/nonsepsis row counts.
 * Splitting the labeled train data into training and test. The provided test data isn't labeled because it is used to score for the leaderboard/competition. Thus the training data is split into train and test so that it is still possible to test the model with labels known to evaluate performance and prevent overfitting.
 * Random Forest Model!
