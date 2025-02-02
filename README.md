@@ -14,7 +14,7 @@ Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm
 * Adding 'uid' to all data, a universal ID, based on date/time stamp and person ID.
 * For the patient demographics: converting birthdays and visit start dates into datetime to judge age in months at every patient interaction point (via datetimes per interaction points) as well as possibility of adding variable for length of stay (most recent interaction from visit code minus visit start date).
 * For measurement meds data: removing duplicates, replacing unreasonable measurements with NaN (eg >46 degrees C body temperature).
-* For the drugs exposure data, one hot encoding drugs and routes.
+* For the drugs exposure data, one hot encoding drugs and routes. Removing columns for drugs not present in test data.
 * For the measurement labs data, replacing unreasonable measurements with NaN, removing rows that only have NaN (this removed 1063 rows including some duplicates) and combining rows from the same timestamp for one patient to have one row per patient per instance of time.
 * For the devices data, one hot encoding devices.
 * For the sepsis label data, removing rows that have no timestamp.
