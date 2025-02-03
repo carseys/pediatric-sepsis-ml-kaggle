@@ -29,7 +29,7 @@ class initial_process_of_data:
         self.data_type = data_type
         self.check_input_flag = False
         self.processed_data_dir = False
-        self.moredetails_flag = False
+        self.uids_added = False
     
     def check_input(self) -> None:
         assert (self.data_type=='test') or (self.data_type=='train'), f'You gave self.data_type as {self.data_type}. Please define data_type as "test" or "train."'
@@ -83,17 +83,18 @@ class initial_process_of_data:
         """
         print("Adding UIDs.")
 
-        for table_ind in list(data_dictionary.keys()):
+        for table_ind in list(self.data_dict.keys()):
             if not table_ind.startswith("person_demographics"):
-                table = data_dictionary[table_ind]
+                table = self.data_dict[table_ind]
                 datetime_index = np.argmax([i.find('datetime') for i in table.columns])
                 date_column = table.columns[datetime_index]
                 personid_index = np.argmax([i.find('person_id') for i in table.columns])
                 personid_column = table.columns[personid_index]
                 table['uid'] = table[date_column].astype(str) + table[personid_column].astype(str)
                 table.drop(columns=[date_column,personid_column],inplace=True)
-                data_dictionary[table_ind] = table
+                self.data_dict[table_ind] = table
                 # print(f'file {table_ind} with len {len(table)}')
+        self.uids_added = True
         
         print("UIDs added")
         return None
@@ -112,9 +113,9 @@ class initial_process_of_data:
         * adds new birthday and visit start date columns with dates formated using datetime package.
         * joins new columns to old table using left join to match the unprocessed to the processed date
         """
-        demographics_ind_no = np.argmax([table.startswith("person_demographics") for table in data_dictionary.keys()])
-        demographics_index = list(data_dictionary.keys())[demographics_ind_no]
-        demographics = data_dictionary[demographics_index]
+        demographics_ind_no = np.argmax([table.startswith("person_demographics") for table in self.data_dict.keys()])
+        demographics_index = list(self.data_dict.keys())[demographics_ind_no]
+        demographics = self.data_dict[demographics_index]
         print(f"Beginning processing for {demographics_index}.")
         
 
@@ -137,11 +138,11 @@ class initial_process_of_data:
         demographics = pd.merge(left=demographics,right=new_visit_col,how='left',on='visit_start_date')
         demographics.drop(columns=['visit_start_date','birth_datetime'],inplace=True)
         demographics.to_csv(f'./processed_data/processed_{demographics_index}.csv')
-        data_dictionary[demographics_index] = demographics
+        self.data_dict[demographics_index] = demographics
         print(f"Finished processing of {demographics_index}.")
         return None
 
-    def measurement_meds_processing(data_dictionary: dict) -> None:
+    def measurement_meds_processing(self) -> None:
         """ This function processes the 'measurement_meds' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -159,9 +160,9 @@ class initial_process_of_data:
         * removes Measurement of oxygen saturation at periphery > 150
         * removes Oxygen/Gas total [Pure volume fraction] Inhaled gas > 80
         """
-        body_measurements_ind = np.argmax([table.startswith("measurement_meds") for table in data_dictionary.keys()])
-        body_measurements_index = list(data_dictionary.keys())[body_measurements_ind]
-        measurements = data_dictionary[body_measurements_index]
+        body_measurements_ind = np.argmax([table.startswith("measurement_meds") for table in self.data_dict.keys()])
+        body_measurements_index = list(self.data_dict.keys())[body_measurements_ind]
+        measurements = self.data_dict[body_measurements_index]
         print(f"Beginning processing for {body_measurements_index}.")
 
         
@@ -175,11 +176,11 @@ class initial_process_of_data:
         measurements['Measurement of oxygen saturation at periphery'] = measurements['Measurement of oxygen saturation at periphery'].apply(lambda x: np.nan if x > 150 else x)
         measurements['Oxygen/Gas total [Pure volume fraction] Inhaled gas'] = measurements['Oxygen/Gas total [Pure volume fraction] Inhaled gas'].apply(lambda x: np.nan if x > 80 else x)
         measurements.to_csv(f'./processed_data/processed_{body_measurements_index}.csv')
-        data_dictionary[body_measurements_index] = measurements
+        self.data_dict[body_measurements_index] = measurements
         print(f"Finished processing of {body_measurements_index}.")
         return None
     
-    def drugs_exposure_processing(data_dictionary: dict) -> None:
+    def drugs_exposure_processing(self) -> None:
         """ This function processes the 'drugsexposure' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -196,10 +197,11 @@ class initial_process_of_data:
         * combines rows of the same datetime with different drugs to be one row per datetime with all drugs listed in new 'drugs' column and all drug routes listed in new 'routes' column
         * converts from list to string for new columns to allow categorical encoding later on
         """
-        # assert uids_added == True, 'You need to run add_uids before this function.'
-        drugs_exposure_ind = np.argmax([table.startswith("drugsexposure") for table in data_dictionary.keys()])
-        drugs_exposure_index = list(data_dictionary.keys())[drugs_exposure_ind]
-        drugs_exposure = data_dictionary[drugs_exposure_index]
+        assert self.add_uids, "Please run 'add_uids' before get_details."
+
+        drugs_exposure_ind = np.argmax([table.startswith("drugsexposure") for table in self.data_dict.keys()])
+        drugs_exposure_index = list(self.data_dict.keys())[drugs_exposure_ind]
+        drugs_exposure = self.data_dict[drugs_exposure_index]
         drugs_exposure.reset_index(inplace = True, drop = True)
         print(f"Beginning processing for {drugs_exposure_index}.")
 
@@ -217,12 +219,12 @@ class initial_process_of_data:
 
         drugs_rows_df = pd.DataFrame(drugs_rows, columns = drugs_exposure.columns)
         drugs_exposure = pd.concat([drugs_exposure,drugs_rows_df]).reset_index(drop=True)
-        data_dictionary[drugs_exposure_index] = drugs_exposure
+        self.data_dict[drugs_exposure_index] = drugs_exposure
         drugs_exposure.to_csv(f'./processed_data/processed_{drugs_exposure_index}.csv')
         print(f"Finished processing of {drugs_exposure_index}.")
         return None
 
-    def measurement_lab_processing(data_dictionary: dict) -> None:
+    def measurement_lab_processing(self) -> None:
         """ This function processes the 'measurement_lab' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -240,11 +242,11 @@ class initial_process_of_data:
         * combines rows which have the same datetime but different columns filled (different columns have non-NA values)
         * converts columns to float to resolve typing issue
         """
-        # assert uids_added == True, 'You need to run add_uids before this function.'
+        assert self.add_uids, "Please run 'add_uids' before get_details."
 
-        measurement_lab_ind = np.argmax([table.startswith("measurement_lab") for table in data_dictionary.keys()])
-        measurement_lab_index = list(data_dictionary.keys())[measurement_lab_ind]
-        measurement_lab = data_dictionary[measurement_lab_index]
+        measurement_lab_ind = np.argmax([table.startswith("measurement_lab") for table in self.data_dict.keys()])
+        measurement_lab_index = list(self.data_dict.keys())[measurement_lab_ind]
+        measurement_lab = self.data_dict[measurement_lab_index]
         print(f"Beginning processing for {measurement_lab_index}.")
 
         measurement_lab['Blood arterial pH'] = measurement_lab['Blood arterial pH'].apply(lambda x: np.nan if x > 30 else x)
@@ -310,11 +312,11 @@ class initial_process_of_data:
             measurement_lab[column] = measurement_lab[column].astype(float)
 
         measurement_lab.to_csv(f'./processed_data/processed_{measurement_lab_index}.csv')
-        data_dictionary[measurement_lab_index] = measurement_lab
+        self.data_dict[measurement_lab_index] = measurement_lab
         print(f"Finished processing of {measurement_lab_index}.")
         return None
     
-    def measurement_observation_processing(data_dictionary: dict) -> None:
+    def measurement_observation_processing(self) -> None:
         """ This function processes the 'measurement_observation' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -327,18 +329,18 @@ class initial_process_of_data:
         * creates csv to verify this table has been processed.
         """
 
-        measurement_obs_ind = np.argmax([table.startswith("measurement_observation") for table in data_dictionary.keys()])
-        measurement_obs_index = list(data_dictionary.keys())[measurement_obs_ind]
-        measurement_obs = data_dictionary[measurement_obs_index]
+        measurement_obs_ind = np.argmax([table.startswith("measurement_observation") for table in self.data_dict.keys()])
+        measurement_obs_index = list(self.data_dict.keys())[measurement_obs_ind]
+        measurement_obs = self.data_dict[measurement_obs_index]
         print(f"Beginning processing for {measurement_obs_index}.")
 
         # measurement_obs = measurement_obs.dropna(subset=measurement_obs.select_dtypes(float).columns, how='all')
         measurement_obs.to_csv(f'./processed_data/processed_{measurement_obs_index}.csv')
-        data_dictionary[measurement_obs_index] = measurement_obs
+        self.data_dict[measurement_obs_index] = measurement_obs
         print(f"Finished processing of {measurement_obs_index}.")
         return None
     
-    def observation_processing(data_dictionary: dict) -> None:
+    def observation_processing(self) -> None:
         """ This function processes the 'observation' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -352,9 +354,9 @@ class initial_process_of_data:
         * removes columns 'observation_concept_id' and 'observation_concept_name' which each have only one value filled to all rows.
         """
 
-        observation_ind = np.argmax([table.startswith("observation") for table in data_dictionary.keys()])
-        observation_index = list(data_dictionary.keys())[observation_ind]
-        observation = data_dictionary[observation_index]
+        observation_ind = np.argmax([table.startswith("observation") for table in self.data_dict.keys()])
+        observation_index = list(self.data_dict.keys())[observation_ind]
+        observation = self.data_dict[observation_index]
         print(f"Beginning processing for {observation_index}.")
         observation.drop(columns=['observation_concept_id','observation_concept_name'], inplace = True)
 
@@ -363,11 +365,11 @@ class initial_process_of_data:
 
         observation.to_csv(f'./processed_data/processed_{observation_index}.csv')
 
-        data_dictionary[observation_index] = observation 
+        self.data_dict[observation_index] = observation 
         print(f"Finished processing of {observation_index}.")
         return None
 
-    def procedures_processing(data_dictionary: dict) -> None:
+    def procedures_processing(self) -> None:
         """ This function processes the 'observation' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -386,9 +388,9 @@ class initial_process_of_data:
         """
         # assert uids_added == True, 'You need to run add_uids before this function.'
 
-        procedures_ind = np.argmax([table.startswith("proceduresoccurrences") for table in data_dictionary.keys()])
-        procedures_index = list(data_dictionary.keys())[procedures_ind]
-        procedures = data_dictionary[procedures_index]
+        procedures_ind = np.argmax([table.startswith("proceduresoccurrences") for table in self.data_dict.keys()])
+        procedures_index = list(self.data_dict.keys())[procedures_ind]
+        procedures = self.data_dict[procedures_index]
         print(f"Beginning processing for {procedures_index}.")
 
         procedures = procedures.dropna(subset=procedures.select_dtypes(object).columns, how='all')
@@ -402,11 +404,11 @@ class initial_process_of_data:
         procedures.to_csv(f'./processed_data/processed_{procedures_index}.csv')
 
 
-        data_dictionary[procedures_index] = procedures 
+        self.data_dict[procedures_index] = procedures 
         print(f"Finished processing of {procedures_index}.")
         return None
 
-    def devices_processing(data_dictionary: dict) -> None:
+    def devices_processing(self) -> None:
         """ This function processes the 'devices' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -419,9 +421,9 @@ class initial_process_of_data:
         * creates csv to verify this table has been processed.
         """
 
-        devices_ind = np.argmax([table.startswith("devices") for table in data_dictionary.keys()])
-        devices_index = list(data_dictionary.keys())[devices_ind]
-        devices = data_dictionary[devices_index]
+        devices_ind = np.argmax([table.startswith("devices") for table in self.data_dict.keys()])
+        devices_index = list(self.data_dict.keys())[devices_ind]
+        devices = self.data_dict[devices_index]
         print(f"Beginning processing for {devices_index}.")
 
         devices = devices.dropna(subset=devices.select_dtypes(object).columns, how='all')
@@ -448,11 +450,11 @@ class initial_process_of_data:
 
         devices.to_csv(f'./processed_data/processed_{devices_index}.csv')
 
-        data_dictionary[devices_index] = devices
+        self.data_dict[devices_index] = devices
         print(f"Finished processing of {devices_index}.")
         return None
 
-    def sepsis_processing(data_dictionary: dict) -> None:
+    def sepsis_processing(self) -> None:
         """ This function processes the 'sepsis' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
         Parameters
@@ -464,16 +466,16 @@ class initial_process_of_data:
         -------
         * drops values which have no datetime
         """
-        sepsis_ind = np.argmax([table.startswith("SepsisLabel") for table in data_dictionary.keys()])
-        sepsis_index = list(data_dictionary.keys())[sepsis_ind]
-        sepsis = data_dictionary[sepsis_index]
+        sepsis_ind = np.argmax([table.startswith("SepsisLabel") for table in self.data_dict.keys()])
+        sepsis_index = list(self.data_dict.keys())[sepsis_ind]
+        sepsis = self.data_dict[sepsis_index]
         print(f"Beginning processing for {sepsis_index}.")
 
         #Taking out values that have no datetime:
         no_time_rows = list(sepsis.loc[sepsis['uid'].str.startswith('nan', na=False)].index)
         sepsis = sepsis.drop(index=no_time_rows, axis = 1, inplace = False)
         
-        data_dictionary[sepsis_index] = sepsis
+        self.data_dict[sepsis_index] = sepsis
         sepsis.to_csv(f'./processed_data/processed_{sepsis_index}.csv')
         
         print(f"Finished processing of {sepsis_index}.")
@@ -501,21 +503,21 @@ class initial_process_of_data:
         # assert (data_type=='test') or (data_type=='train'), f'You gave data_type as {data_type}. Please define data_type as "test" or "train."'
         assert (load_tables=='yes') or (load_tables=='no'), f'You gave load_tables as {load_tables}. Please define load_tables as "test" or "train."'
 
-        processed_data_directory()
+        self.processed_data_directory()
 
         if self.data_type == 'train':
             if load_tables == 'no':
-                training_data = readin_data('train')
-                add_uids(training_data)
-                birthday_management(training_data)
-                measurement_meds_processing(training_data)
-                drugs_exposure_processing(training_data)
-                measurement_lab_processing(training_data)
-                procedures_processing(training_data)
-                observation_processing(training_data)
-                measurement_observation_processing(training_data)
-                devices_processing(training_data)
-                sepsis_processing(training_data)
+                training_data = self.readin_data('train')
+                self.add_uids(training_data)
+                self.birthday_management(training_data)
+                self.measurement_meds_processing(training_data)
+                self.drugs_exposure_processing(training_data)
+                self.measurement_lab_processing(training_data)
+                self.procedures_processing(training_data)
+                self.observation_processing(training_data)
+                self.measurement_observation_processing(training_data)
+                self.devices_processing(training_data)
+                self.sepsis_processing(training_data)
             else:
                 training_data={}
                 inner_directory = './processed_data/'
@@ -536,17 +538,17 @@ class initial_process_of_data:
 
         else:
             if load_tables == 'no':
-                testing_data = readin_data('test')
-                add_uids(testing_data)
-                birthday_management(testing_data)
-                measurement_meds_processing(testing_data)
-                drugs_exposure_processing(testing_data)
-                measurement_lab_processing(testing_data)
-                procedures_processing(testing_data)
-                observation_processing(testing_data)
-                measurement_observation_processing(testing_data)
-                devices_processing(testing_data)
-                sepsis_processing(testing_data)
+                testing_data = self.readin_data('test')
+                self.add_uids(testing_data)
+                self.birthday_management(testing_data)
+                self.measurement_meds_processing(testing_data)
+                self.drugs_exposure_processing(testing_data)
+                self.measurement_lab_processing(testing_data)
+                self.procedures_processing(testing_data)
+                self.observation_processing(testing_data)
+                self.measurement_observation_processing(testing_data)
+                self.devices_processing(testing_data)
+                self.sepsis_processing(testing_data)
             else:
                 training_data={}
                 inner_directory = './processed_data/'
