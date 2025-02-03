@@ -1,39 +1,29 @@
 import pandas as pd
 import numpy as np
 import os
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GroupShuffleSplit
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay, f1_score
-from sklearn.metrics import classification_report 
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, KFold
-from xgboost import XGBClassifier
-from sklearn.impute import KNNImputer
-import random
-
-
 from collections import Counter
 from datetime import datetime
 from tqdm import tqdm
 import seaborn as sns
 import matplotlib.pyplot as plt
-import joblib
 
 
 class initial_process_of_data:
     """
     Initial processing of data reads in data of specified category, creates dictionary of data, removes impossible values, merges data to give a df. 
     """
-    def __init__(self, data_type:str):
+    def __init__(self, data_type:str, load_tables: str):
         self.data_type = data_type
         self.check_input_flag = False
         self.processed_data_dir = False
         self.uids_added = False
+        self.load_tables = load_tables
     
     def check_input(self) -> None:
         assert (self.data_type=='test') or (self.data_type=='train'), f'You gave self.data_type as {self.data_type}. Please define data_type as "test" or "train."'
+        assert (self.load_tables=='yes') or (self.load_tables=='no'), f'You gave self.data_type as {self.load_tables}. Please define data_type as "yes" or "no."'
         self.check_input_flag = True
+        
 
     def readin_data(self):
         """ This function reads in test or train data, which must be in folders 'testing_data' and 'training_data' in the same directory.
@@ -43,7 +33,7 @@ class initial_process_of_data:
         'self.data_type' : str
             This must be 'test' or 'train'.
         """
-        # assert (self.data_type=='test') or (self.data_type=='train'), f'You gave self.data_type as {self.data_type}. Please define self.data_type as "test" or "train."'
+
         if self.data_type == 'test':
             inner_directory = './testing_data/'
             data_list = os.listdir('./testing_data')
@@ -386,7 +376,7 @@ class initial_process_of_data:
         * drops visit_occurrence column
         * drops duplicate entries
         """
-        # assert uids_added == True, 'You need to run add_uids before this function.'
+        assert self.add_uids, "Please run 'add_uids' before get_details."
 
         procedures_ind = np.argmax([table.startswith("proceduresoccurrences") for table in self.data_dict.keys()])
         procedures_index = list(self.data_dict.keys())[procedures_ind]
@@ -420,6 +410,7 @@ class initial_process_of_data:
         -------
         * creates csv to verify this table has been processed.
         """
+        assert self.add_uids, "Please run 'add_uids' before get_details."
 
         devices_ind = np.argmax([table.startswith("devices") for table in self.data_dict.keys()])
         devices_index = list(self.data_dict.keys())[devices_ind]
@@ -466,6 +457,8 @@ class initial_process_of_data:
         -------
         * drops values which have no datetime
         """
+        assert self.add_uids, "Please run 'add_uids' before get_details."
+
         sepsis_ind = np.argmax([table.startswith("SepsisLabel") for table in self.data_dict.keys()])
         sepsis_index = list(self.data_dict.keys())[sepsis_ind]
         sepsis = self.data_dict[sepsis_index]
@@ -481,7 +474,7 @@ class initial_process_of_data:
         print(f"Finished processing of {sepsis_index}.")
         return None
     
-    def process_data(self, load_tables: str):
+    def process_data(self):
         """ This function reads in test or train data and goes through functions to preprocess it. For further details see specific functions.
 
         Processed tables will be saved into the /processed folder.
@@ -500,13 +493,11 @@ class initial_process_of_data:
         'factors' : DataFrame
             This is a DataFrame of the data from 'processed_data' joined together.
         """
-        # assert (data_type=='test') or (data_type=='train'), f'You gave data_type as {data_type}. Please define data_type as "test" or "train."'
-        assert (load_tables=='yes') or (load_tables=='no'), f'You gave load_tables as {load_tables}. Please define load_tables as "test" or "train."'
 
         self.processed_data_directory()
 
         if self.data_type == 'train':
-            if load_tables == 'no':
+            if self.load_tables == 'no':
                 training_data = self.readin_data('train')
                 self.add_uids(training_data)
                 self.birthday_management(training_data)
@@ -534,10 +525,10 @@ class initial_process_of_data:
             # factors = pd.merge(left=factors, right=training_data['person_demographics_episode_train'], how='outer',on='visit_occurrence_id')
             factors = pd.merge(left=training_data['SepsisLabel_train'],right=factors,how='left',on='uid')
             factors.to_csv(f'./processed_data/factors_train.csv')
-            processed_data = training_data
+            self.data_dict = training_data
 
         else:
-            if load_tables == 'no':
+            if self.load_tables == 'no':
                 testing_data = self.readin_data('test')
                 self.add_uids(testing_data)
                 self.birthday_management(testing_data)
@@ -567,8 +558,8 @@ class initial_process_of_data:
             factors = pd.merge(left=testing_data['SepsisLabel_test'],right=factors,how='left',on='uid')
             print(f'post merge factors {len(factors)}')
             factors.to_csv(f'./processed_data/factors_test.csv')
-            processed_data = testing_data
+            self.data_dict = testing_data
 
         factors.drop(columns=['visit_occurrence_id_x','visit_occurrence_id_y'],inplace=True)
 
-        return processed_data, factors
+        return self.data_dict, factors
