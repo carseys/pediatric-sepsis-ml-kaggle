@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import os
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 from collections import Counter
 from datetime import datetime
 from tqdm import tqdm
@@ -8,7 +10,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-class initial_process_of_data:
+class initial_intake_process_of_data:
     """
     Initial processing of data reads in data of specified category, creates dictionary of data, removes impossible values, merges data to give a df. 
     """
@@ -563,3 +565,392 @@ class initial_process_of_data:
         factors.drop(columns=['visit_occurrence_id_x','visit_occurrence_id_y'],inplace=True)
 
         return self.data_dict, factors
+    
+
+
+class post_merge_process:
+    """
+    Initial processing of data reads in data of specified category, creates dictionary of data, removes impossible values, merges data to give a df. 
+    """
+    def __init__(self, data_dict: dict, factors: pd.DataFrame):
+        self.data_dict = data_dict
+        self.factors = factors
+        self.new_person_id_flag = False
+        self.processed_data_dir = False
+        self.uids_added = False
+
+    def new_person_ids(self):
+        """
+        This function reads person_id column for all rows based on UID and adds a new column with this information.
+
+        Parameters
+        ----------
+        'df': pandas DataFrame
+            This should be a pandas DataFrame which contains a column 'uid' with universal ids, with strings with format s.t. the person_id starts at the 18th index. e.g.: '2021-07-21 12:00:00623183219'
+        """
+        # assert that uid column exists
+        print('Beginning adding new_person_id column based on uids.')
+        new_person_ids = pd.DataFrame(columns=['new_person_id','uid'])
+        new_id = df['uid'].copy().apply(lambda x: x[19:])
+        # new_id.apply(lambda x: int(x))
+        new_id = new_id.astype(int)
+        new_person_ids['new_person_id'] = new_id
+        new_person_ids['uid'] = df['uid'].copy()
+        # df.drop(columns=['person_id'],inplace=True)
+        df['new_person_id']=new_person_ids['new_person_id']
+        self.new_person_id = True
+        print('Finished adding new_person_id column based on uids.')
+        return None
+    
+    def birthday_ubiquity(self):
+        """
+        This function adds age in months to all rows in df based on uid time and birthday. It also adds gender to all rows in df.
+
+        Parameters
+        ----------
+        'df': pandas DataFrame
+            This is a pandas DataFrame of patient data that contains a 'new_person_id' column from running new_person_ids function.
+        'data_dictionary': dictionary
+            This is a dictionary of pandas DataFrames, should have a table of 'person_demographics_episode' data. The 'person_demographics_episode' data will be used to establish birthdays and genders for patients who occur in the DataFrame given.
+
+        Returns
+        -------
+        'df': pandas DataFrame
+            returns df with age in months and gender for participants with entry in 'person_demographics_episode' from provided data_dictionary.
+
+        Details
+        -------
+        * makes temporary dataframe 'unique_demographics_rows' of gender and birthday from 'person_demographics_episode'
+        * temporarily adds birthday by joining birthday from 'unique_demographics_rows' to df with key as new_person_id
+        * temporarily creates datetime column derived from uid
+        * adds age in months column by time between uid date and birthday to df in new column
+        * deletes birthday column from df
+        * adds gender column by joining gender from 'unique_demographics_rows' to df with key as new_person_id
+        """
+        #assert that new_person_id column exists
+        assert self.new_person_id_flag, "Please run 'add_uids' before get_details."
+
+        # factors = pd.merge(left=testing_data['SepsisLabel_test'],right=factors,how='left',on='uid')
+        print('Beginning birthday ubiquity.')
+
+        demographics_ind_no = np.argmax([table.startswith("person_demographics") for table in data_dictionary.keys()])
+        demographics_index = list(data_dictionary.keys())[demographics_ind_no]
+        demographics = data_dictionary[demographics_index]
+
+        unique_demographics_rows = pd.DataFrame(columns=['new_person_id','gender','birthday'])
+        for patient in np.unique(demographics['person_id']):
+            birthday = list(demographics[demographics['person_id']==patient]['birthday_formatted'])[0]
+            gender = list(demographics[demographics['person_id']==patient]['gender'])[0]
+            unique_demographics_rows.loc[len(unique_demographics_rows)] = [patient, gender, birthday]
+        df = pd.merge(left=df, right=unique_demographics_rows, how='left', on='new_person_id')
+        datetime_temp = df['uid'].copy().apply(lambda x: x[:19])
+        datetime_temp = pd.to_datetime(datetime_temp)
+        birthday_col = df['birthday'].copy()
+        age = -round((birthday_col-datetime_temp)/np.timedelta64(1,'D')/30)
+        df['age'] = age
+        df.drop(columns=['birthday'], inplace = True)
+        print('Birthday ubiquity established.')
+        return df
+
+    def add_visit_reason(self):
+        """
+
+        This function adds 'Admission Reason' column to 'df'. This is done based on the most recent admission reason in the 'observation' table in 'data_dictionary' which occurs at or before the timestamp of a row (via uid).
+        
+        Please makes sure 'df' and 'data_dictionary' correspond to the same data!
+        
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+            DataFrame of data.
+        'data_dictionary' : dict
+            dictionary with DataFrames for values.
+
+        Returns
+        -------
+        none since df is modified inplace.
+        """
+        # assert uid column in df
+        # potentially assert observation column in df.
+
+        observation_ind = np.argmax([table.startswith("observation") for table in data_dictionary.keys()])
+        observation_index = list(data_dictionary.keys())[observation_ind]
+        observation = data_dictionary[observation_index]
+
+        print("Adding visit reason")
+
+        admission_times = observation['uid'].copy().apply(lambda x: x[:19])
+        admission_times = pd.to_datetime(admission_times)
+        
+        person = observation['uid'].copy().apply(lambda x: x[19:])
+        person = person.astype(int)
+
+        observation['admission_time'] = admission_times
+        observation['person'] = person
+
+        most_recent_admission_list = []
+
+        for uid in tqdm(np.unique(df['uid'])):
+            instance = pd.to_datetime(uid[:19])
+            person = int(uid[19:])
+            try:
+                # personal_admissions = observation[observation['person']==person]
+                recent_reason = observation[(observation['person']==person) & (observation['admission_time'] <= instance)].sort_values(by='admission_time', ascending=False).iloc[0]['valuefilled']
+            except:
+                recent_reason = np.nan
+            most_recent_admission_list.append(recent_reason)
+        admission_reason = pd.DataFrame(most_recent_admission_list, columns=['Admission Reason'])
+        df['Admission Reason'] = admission_reason
+        print("Visit reasons added")
+        return None
+
+    def time_interpolation(self):
+        """
+        This function interpolates values for certain columns based on difference in time via uid.
+        
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+        """
+        # function does not work
+        # 'White blood cell count'
+        assert self.new_person_id_flag, "Please run 'add_uids' before get_details."
+        
+        datetime_temp = df['uid'].copy().apply(lambda x: x[:19])
+        df['datetime_temp'] = pd.to_datetime(datetime_temp)
+        for person in tqdm(np.unique(df['new_person_id'])):
+            personal_df = df[df['new_person_id']==person].loc[:,['White blood cell count', 'datetime_temp']]
+            og_index = personal_df.index
+            personal_df.set_index('datetime_temp', inplace=True)
+            personal_df.loc[:,['White blood cell count']].interpolate(method='time')
+            personal_df.set_index(og_index, inplace=True)
+            print(personal_df)
+            df[df['new_person_id']==person]['White blood cell count']
+            # Write new df? #TODO 
+        return None
+
+    def clearing_cols(df: pd.DataFrame, threshold: int, data_type: str, col_list: list = None):
+        """
+        Clears columns that shouldn't be there for modeling and columns that don't meet threshold of number of values.
+        
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+            DataFrame of data
+        'threshold' : int
+            number of values needed in a column. If column doesn't have this number of entries, it will be dropped from df. Irrelevant if 'data_type' is set to 'train'.
+        'data_type' : str
+            'train' or 'test'.
+        'col_list' : list
+            This is a list of columns to clear in test data, based on most recent run of this function with training data.
+
+        Returns
+        -------
+        'df' : pd.DataFrame
+        'sufficiently_empty_cols' : list
+        """
+        # assert data_type
+        print('Clearing columns.')
+
+        if data_type == 'train':
+            sufficiently_empty_cols = list(df.loc[:,df.count() < threshold].columns)
+            df.drop(columns=sufficiently_empty_cols, inplace=True)
+            df.drop(columns=['visit_occurrence_id','uid'], inplace=True)
+            # The following columns are dropped because the drugs are not present in test data.
+            df.drop(columns=['ohe_ceftolozane','ohe_isoproterenol'],inplace=True)
+        
+        if data_type == 'test':
+            sufficiently_empty_cols = col_list
+            df.drop(columns=sufficiently_empty_cols, inplace=True)
+            df.drop(columns=['visit_occurrence_id','uid'], inplace=True)
+
+        print('Columns cleared.')
+
+        return df, sufficiently_empty_cols
+    
+    def fill_from_gaussian(column_value, mean: float, std: float):
+        """"
+        This function imputes NaN values with values sampled from a normal distribution of parameters specified.
+
+        Parameters
+        ----------
+        'column_value'
+            the column this is applied to
+        'mean' : float
+            mean of normal distribution sampled.
+        'std': float
+            standard deviation of normal distribution sampled.
+        """
+        if np.isnan(column_value) == True:
+            column_value = np.round(np.random.normal(mean, std, 1)[0], 1)
+        else:
+            column_value = column_value
+        return column_value
+
+    def fill_nans_gaussian(self):
+        """
+        Imputes NaN values in certain columns of df provided, based on online information of typical values by age.
+
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+            DataFrame of data.
+        
+        Returns
+        -------
+        None. df will be updated by column.
+        """
+        print('filling NaN values using Gaussians.')
+        
+        df['Body temperature'] = df['Body temperature'].apply(fill_from_gaussian, **{'mean': 36.9, 'std': .15})
+
+        df.loc[df['age'] <= 12, 'Systolic blood pressure'] = df.loc[df['age'] <= 12, 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 90, 'std': 5})
+        df.loc[df['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'] = df.loc[df['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 105, 'std': 7})
+        df.loc[df['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'] = df.loc[df['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 114, 'std': 7})
+        df.loc[df['age'] >120, 'Systolic blood pressure'] = df.loc[df['age'] >120, 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 120, 'std': 10})
+
+        df.loc[df['age'] <= 12, 'Diastolic blood pressure'] = df.loc[df['age'] <= 12, 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 49, 'std': 5})
+        df.loc[df['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'] = df.loc[df['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 60, 'std': 5})
+        df.loc[df['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'] = df.loc[df['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 70, 'std': 5})
+        df.loc[df['age'] > 120, 'Diastolic blood pressure'] = df.loc[df['age'] > 120, 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 75, 'std': 7})
+
+        df.loc[df['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 42, 'std': 4})
+        df.loc[df['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 35, 'std': 4})
+        df.loc[df['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 37, 'std': 2})
+        # > 60 Hematocrit should vary for M vs F but not implemented here
+        df.loc[df['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 42, 'std': 2})
+
+        # df.loc[df['age'] <= 36, 'Glucose [Moles/volume] in Serum or Plasma'] = df.loc[df['age'] <= 36, 'Glucose [Moles/volume] in Serum or Plasma'].apply(fill_from_gaussian, **{'mean': 120, 'std': 30})
+        # df.loc[df['age'] > 36, 'Glucose [Moles/volume] in Serum or Plasma'] = df.loc[df['age'] > 36, 'Glucose [Moles/volume] in Serum or Plasma'].apply(fill_from_gaussian, **{'mean': 125, 'std': 25})
+
+        # df['Bicarbonate [Moles/volume] in Venous blood'] = df['Bicarbonate [Moles/volume] in Venous blood'].apply(fill_from_gaussian, **{'mean': 24, 'std': 2})
+        # df['Blood arterial pH'] = df['Blood arterial pH'].apply(fill_from_gaussian, **{'mean': 7.4, 'std': .05})
+
+
+        # Not a good idea to impute WBC by expected values!
+        # df.loc[df['age'] <= 1, 'White blood cell count'] = df.loc[df['age'] <= 1, 'White blood cell count'].apply(fill_from_gaussian, **{'mean': 12.5, 'std': 3})
+        # df.loc[df['age'].between(1, 24,inclusive='right'), 'White blood cell count'] = df.loc[df['age'].between(1, 24,inclusive='right'), 'White blood cell count'].apply(fill_from_gaussian, **{'mean': 11.5, 'std': 3})
+        # df.loc[df['age'].between(24, 96,inclusive='right'), 'White blood cell count'] = df.loc[df['age'].between(24, 96,inclusive='right'), 'White blood cell count'].apply(fill_from_gaussian, **{'mean': 10, 'std': 2.5})
+        # df.loc[df['age'] > 96, 'White blood cell count'] = df.loc[df['age'] > 96, 'White blood cell count'].apply(fill_from_gaussian, **{'mean': 9, 'std': 2})
+        print('filled NaN values using Gaussians.')
+        return None
+
+    def fill_zeros_imputation(self):
+        """
+        This function fills zeros for the empty rows of one-hot-encoded columns.
+
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+            DataFrame of data.
+
+        Returns
+        -------
+        none.
+        """
+        print("Filling zero values for one hot encoding columns.")
+        ohe_col_inds = [i.startswith('ohe') for i in list(df.columns)]
+        ohe_cols = df.columns[ohe_col_inds]
+        for col in ohe_cols:
+            df[col] = df[col].apply(lambda x: 0 if pd.isna(x) else x)
+        print("Zeros filled.")
+        return None
+
+    def categorical_encoding(self):
+        """
+        Encodes categorical data, as determined by columns with object datatypes.
+
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+            DataFrame of Data
+
+        Returns
+        -------
+        None. df is updated in place.
+        """
+        print('Beginning categorical encoding.')
+        categorical_cols = list(df.select_dtypes(object).columns)
+        le_dictionary = {}
+        for name in tqdm(categorical_cols):
+            le = LabelEncoder()
+            le.fit(df.loc[:,f'{name}'])
+            new_col = le.transform(df.loc[:,f'{name}'])
+            le_dictionary[name] = le
+            df.drop(columns=f'{name}', inplace=True)
+            df[f'encoded_{name}'] = new_col
+        print('Finished categorical encoding.')
+        return None
+
+    def post_join_processing_train(self, entry_threshold: int):
+        """
+        This function is for training data only.
+
+        Runs operations on dataframe that occur after the tables of patient data have been joined together into a table of factors. This is pre-split.
+
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+            This is a DataFrame of patient data.
+        'data_dictionary' : dict
+            This is a dictionary of DataFrames that was presumably used to create the DataFrame df. Data from 'person_demographics_episode' will be used to populate age and gender in df.
+        'entry_threshold' : int
+            Columns with count of values less than this threshold will be removed. That is, non-NaN values.
+        
+        Details
+        -------
+        * runs new_person_ids
+        * runs birthday_ubiquity
+        * runs clearing_cols
+        * runs categorical_encoding
+        """
+        # add flags
+        
+        self.new_person_ids(df=df)
+        df = self.birthday_ubiquity(df = df, data_dictionary = data_dictionary)
+        self.add_visit_reason(df=df,data_dictionary= data_dictionary)
+        df, cols_cleared = self.clearing_cols(df=df, threshold = entry_threshold, data_type = 'train')
+        self.fill_nans_gaussian(df)
+        self.fill_zeros_imputation(df)
+        self.categorical_encoding(df)
+
+        return df, cols_cleared
+
+    def post_join_processing_test(self, col_list: list):
+        """
+        This function is for test data only. That is, data without sepsis labels.
+
+        Runs operations on dataframe that occur after the tables of patient data have been joined together into a table of factors. This is pre-split.
+
+        Parameters
+        ----------
+        'df' : pd.DataFrame
+            This is a DataFrame of patient data.
+        'data_dictionary' : dict
+            This is a dictionary of DataFrames that was presumably used to create the DataFrame df. Data from 'person_demographics_episode' will be used to populate age and gender in df.
+        'entry_threshold' : int
+            Columns with count of values less than this threshold will be removed. That is, non-NaN values.
+        
+        Details
+        -------
+        * runs new_person_ids
+        * runs birthday_ubiquity
+        * runs clearing_cols
+        * runs categorical_encoding
+        """
+        # add flags
+        
+        self.new_person_ids(df=df)
+        df = self.birthday_ubiquity(df = df, data_dictionary = data_dictionary)
+        self.add_visit_reason(df=df,data_dictionary= data_dictionary)
+        # Note that threshold for clearing_cols is irrelevant if data_type is set to 'test'.
+        # Columns will be cleared based on col_list to match columns cleared from training data in most recent run of post_join_processing_train.
+        # cols variable unused but function outputs tuple..
+        df, cols = clearing_cols(df=df, threshold = 10000, data_type = 'test', col_list = col_list)
+        self.fill_nans_gaussian(df)
+        self.fill_zeros_imputation(df)
+        self.categorical_encoding(df)
+        # Since test does not go through later processing that train data does.
+        df.drop(columns=['new_person_id'],inplace=True)
+
+        return df
