@@ -16,10 +16,10 @@ class initial_intake_process_of_data:
     """
     def __init__(self, data_type:str, load_tables: str):
         self.data_type = data_type
+        self.load_tables = load_tables
         self.check_input_flag = False
         self.processed_data_dir = False
         self.uids_added = False
-        self.load_tables = load_tables
     
     def check_input(self) -> None:
         assert (self.data_type=='test') or (self.data_type=='train'), f'You gave self.data_type as {self.data_type}. Please define data_type as "test" or "train."'
@@ -572,12 +572,12 @@ class post_merge_process:
     """
     Initial processing of data reads in data of specified category, creates dictionary of data, removes impossible values, merges data to give a df. 
     """
-    def __init__(self, data_dict: dict, factors: pd.DataFrame):
+    def __init__(self, data_dict: dict, factors: pd.DataFrame, data_type: str):
         self.data_dict = data_dict
         self.factors = factors
+        self.data_type = data_type
         self.new_person_id_flag = False
-        self.processed_data_dir = False
-        self.uids_added = False
+        self.col_list_filled = False
 
     def new_person_ids(self):
         """
@@ -591,14 +591,14 @@ class post_merge_process:
         # assert that uid column exists
         print('Beginning adding new_person_id column based on uids.')
         new_person_ids = pd.DataFrame(columns=['new_person_id','uid'])
-        new_id = df['uid'].copy().apply(lambda x: x[19:])
+        new_id = self.factors['uid'].copy().apply(lambda x: x[19:])
         # new_id.apply(lambda x: int(x))
         new_id = new_id.astype(int)
         new_person_ids['new_person_id'] = new_id
-        new_person_ids['uid'] = df['uid'].copy()
+        new_person_ids['uid'] = self.factors['uid'].copy()
         # df.drop(columns=['person_id'],inplace=True)
-        df['new_person_id']=new_person_ids['new_person_id']
-        self.new_person_id = True
+        self.factors['new_person_id']=new_person_ids['new_person_id']
+        self.new_person_id_flag = True
         print('Finished adding new_person_id column based on uids.')
         return None
     
@@ -627,15 +627,15 @@ class post_merge_process:
         * deletes birthday column from df
         * adds gender column by joining gender from 'unique_demographics_rows' to df with key as new_person_id
         """
-        #assert that new_person_id column exists
+
         assert self.new_person_id_flag, "Please run 'add_uids' before get_details."
 
         # factors = pd.merge(left=testing_data['SepsisLabel_test'],right=factors,how='left',on='uid')
         print('Beginning birthday ubiquity.')
 
-        demographics_ind_no = np.argmax([table.startswith("person_demographics") for table in data_dictionary.keys()])
-        demographics_index = list(data_dictionary.keys())[demographics_ind_no]
-        demographics = data_dictionary[demographics_index]
+        demographics_ind_no = np.argmax([table.startswith("person_demographics") for table in self.data_dict.keys()])
+        demographics_index = list(self.data_dict.keys())[demographics_ind_no]
+        demographics = self.data_dict[demographics_index]
 
         unique_demographics_rows = pd.DataFrame(columns=['new_person_id','gender','birthday'])
         for patient in np.unique(demographics['person_id']):
@@ -663,8 +663,10 @@ class post_merge_process:
         ----------
         'df' : pd.DataFrame
             DataFrame of data.
+            Taken from init of class.
         'data_dictionary' : dict
             dictionary with DataFrames for values.
+            Taken from init of class.
 
         Returns
         -------
@@ -673,9 +675,9 @@ class post_merge_process:
         # assert uid column in df
         # potentially assert observation column in df.
 
-        observation_ind = np.argmax([table.startswith("observation") for table in data_dictionary.keys()])
-        observation_index = list(data_dictionary.keys())[observation_ind]
-        observation = data_dictionary[observation_index]
+        observation_ind = np.argmax([table.startswith("observation") for table in self.data_dict.keys()])
+        observation_index = list(self.data_dict.keys())[observation_ind]
+        observation = self.data_dict[observation_index]
 
         print("Adding visit reason")
 
@@ -690,7 +692,7 @@ class post_merge_process:
 
         most_recent_admission_list = []
 
-        for uid in tqdm(np.unique(df['uid'])):
+        for uid in tqdm(np.unique(self.factors['uid'])):
             instance = pd.to_datetime(uid[:19])
             person = int(uid[19:])
             try:
@@ -700,7 +702,7 @@ class post_merge_process:
                 recent_reason = np.nan
             most_recent_admission_list.append(recent_reason)
         admission_reason = pd.DataFrame(most_recent_admission_list, columns=['Admission Reason'])
-        df['Admission Reason'] = admission_reason
+        self.factors['Admission Reason'] = admission_reason
         print("Visit reasons added")
         return None
 
@@ -711,25 +713,26 @@ class post_merge_process:
         Parameters
         ----------
         'df' : pd.DataFrame
+            Taken from init of class.
         """
         # function does not work
         # 'White blood cell count'
         assert self.new_person_id_flag, "Please run 'add_uids' before get_details."
         
-        datetime_temp = df['uid'].copy().apply(lambda x: x[:19])
-        df['datetime_temp'] = pd.to_datetime(datetime_temp)
-        for person in tqdm(np.unique(df['new_person_id'])):
-            personal_df = df[df['new_person_id']==person].loc[:,['White blood cell count', 'datetime_temp']]
+        datetime_temp = self.factors['uid'].copy().apply(lambda x: x[:19])
+        self.factors['datetime_temp'] = pd.to_datetime(datetime_temp)
+        for person in tqdm(np.unique(self.factors['new_person_id'])):
+            personal_df = self.factors[self.factors['new_person_id']==person].loc[:,['White blood cell count', 'datetime_temp']]
             og_index = personal_df.index
             personal_df.set_index('datetime_temp', inplace=True)
             personal_df.loc[:,['White blood cell count']].interpolate(method='time')
             personal_df.set_index(og_index, inplace=True)
             print(personal_df)
-            df[df['new_person_id']==person]['White blood cell count']
+            self.factors[self.factors['new_person_id']==person]['White blood cell count']
             # Write new df? #TODO 
         return None
 
-    def clearing_cols(df: pd.DataFrame, threshold: int, data_type: str, col_list: list = None):
+    def clearing_cols(self, threshold: int):
         """
         Clears columns that shouldn't be there for modeling and columns that don't meet threshold of number of values.
         
@@ -737,6 +740,7 @@ class post_merge_process:
         ----------
         'df' : pd.DataFrame
             DataFrame of data
+            Taken from init of class.
         'threshold' : int
             number of values needed in a column. If column doesn't have this number of entries, it will be dropped from df. Irrelevant if 'data_type' is set to 'train'.
         'data_type' : str
@@ -749,24 +753,25 @@ class post_merge_process:
         'df' : pd.DataFrame
         'sufficiently_empty_cols' : list
         """
-        # assert data_type
+
         print('Clearing columns.')
 
-        if data_type == 'train':
-            sufficiently_empty_cols = list(df.loc[:,df.count() < threshold].columns)
-            df.drop(columns=sufficiently_empty_cols, inplace=True)
-            df.drop(columns=['visit_occurrence_id','uid'], inplace=True)
+        if self.data_type == 'train':
+            self.col_list = list(self.factors.loc[:,self.factors.count() < threshold].columns)
+            self.factors.drop(columns=self.col_list, inplace=True)
+            self.factors.drop(columns=['visit_occurrence_id','uid'], inplace=True)
             # The following columns are dropped because the drugs are not present in test data.
-            df.drop(columns=['ohe_ceftolozane','ohe_isoproterenol'],inplace=True)
+            self.factors.drop(columns=['ohe_ceftolozane','ohe_isoproterenol'],inplace=True)
+            self.col_list_filled = True
         
-        if data_type == 'test':
-            sufficiently_empty_cols = col_list
-            df.drop(columns=sufficiently_empty_cols, inplace=True)
-            df.drop(columns=['visit_occurrence_id','uid'], inplace=True)
+        if self.data_type == 'test':
+            assert self.col_list_filled, "Please run training data before test data to ensure correct columns are dropped."
+            self.factors.drop(columns=self.col_list, inplace=True)
+            self.factors.drop(columns=['visit_occurrence_id','uid'], inplace=True)
 
         print('Columns cleared.')
 
-        return df, sufficiently_empty_cols
+        return None
     
     def fill_from_gaussian(column_value, mean: float, std: float):
         """"
@@ -795,6 +800,7 @@ class post_merge_process:
         ----------
         'df' : pd.DataFrame
             DataFrame of data.
+            Taken from init of class.
         
         Returns
         -------
@@ -802,23 +808,23 @@ class post_merge_process:
         """
         print('filling NaN values using Gaussians.')
         
-        df['Body temperature'] = df['Body temperature'].apply(fill_from_gaussian, **{'mean': 36.9, 'std': .15})
+        self.factors['Body temperature'] = self.factors['Body temperature'].apply(self.fill_from_gaussian, **{'mean': 36.9, 'std': .15})
 
-        df.loc[df['age'] <= 12, 'Systolic blood pressure'] = df.loc[df['age'] <= 12, 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 90, 'std': 5})
-        df.loc[df['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'] = df.loc[df['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 105, 'std': 7})
-        df.loc[df['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'] = df.loc[df['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 114, 'std': 7})
-        df.loc[df['age'] >120, 'Systolic blood pressure'] = df.loc[df['age'] >120, 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 120, 'std': 10})
+        self.factors.loc[self.factors['age'] <= 12, 'Systolic blood pressure'] = self.factors.loc[self.factors['age'] <= 12, 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 90, 'std': 5})
+        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 105, 'std': 7})
+        self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'] = self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 114, 'std': 7})
+        self.factors.loc[self.factors['age'] >120, 'Systolic blood pressure'] = self.factors.loc[self.factors['age'] >120, 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 120, 'std': 10})
 
-        df.loc[df['age'] <= 12, 'Diastolic blood pressure'] = df.loc[df['age'] <= 12, 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 49, 'std': 5})
-        df.loc[df['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'] = df.loc[df['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 60, 'std': 5})
-        df.loc[df['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'] = df.loc[df['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 70, 'std': 5})
-        df.loc[df['age'] > 120, 'Diastolic blood pressure'] = df.loc[df['age'] > 120, 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 75, 'std': 7})
+        self.factors.loc[self.factors['age'] <= 12, 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'] <= 12, 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 49, 'std': 5})
+        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 60, 'std': 5})
+        self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 70, 'std': 5})
+        self.factors.loc[self.factors['age'] > 120, 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'] > 120, 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 75, 'std': 7})
 
-        df.loc[df['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 42, 'std': 4})
-        df.loc[df['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 35, 'std': 4})
-        df.loc[df['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 37, 'std': 2})
+        self.factors.loc[self.factors['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 42, 'std': 4})
+        self.factors.loc[self.factors['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 35, 'std': 4})
+        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 37, 'std': 2})
         # > 60 Hematocrit should vary for M vs F but not implemented here
-        df.loc[df['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'] = df.loc[df['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 42, 'std': 2})
+        self.factors.loc[self.factors['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 42, 'std': 2})
 
         # df.loc[df['age'] <= 36, 'Glucose [Moles/volume] in Serum or Plasma'] = df.loc[df['age'] <= 36, 'Glucose [Moles/volume] in Serum or Plasma'].apply(fill_from_gaussian, **{'mean': 120, 'std': 30})
         # df.loc[df['age'] > 36, 'Glucose [Moles/volume] in Serum or Plasma'] = df.loc[df['age'] > 36, 'Glucose [Moles/volume] in Serum or Plasma'].apply(fill_from_gaussian, **{'mean': 125, 'std': 25})
@@ -849,10 +855,10 @@ class post_merge_process:
         none.
         """
         print("Filling zero values for one hot encoding columns.")
-        ohe_col_inds = [i.startswith('ohe') for i in list(df.columns)]
-        ohe_cols = df.columns[ohe_col_inds]
+        ohe_col_inds = [i.startswith('ohe') for i in list(self.factors.columns)]
+        ohe_cols = self.factors.columns[ohe_col_inds]
         for col in ohe_cols:
-            df[col] = df[col].apply(lambda x: 0 if pd.isna(x) else x)
+            self.factors[col] = self.factors[col].apply(lambda x: 0 if pd.isna(x) else x)
         print("Zeros filled.")
         return None
 
@@ -870,15 +876,15 @@ class post_merge_process:
         None. df is updated in place.
         """
         print('Beginning categorical encoding.')
-        categorical_cols = list(df.select_dtypes(object).columns)
+        categorical_cols = list(self.factors.select_dtypes(object).columns)
         le_dictionary = {}
         for name in tqdm(categorical_cols):
             le = LabelEncoder()
-            le.fit(df.loc[:,f'{name}'])
-            new_col = le.transform(df.loc[:,f'{name}'])
+            le.fit(self.factors.loc[:,f'{name}'])
+            new_col = le.transform(self.factors.loc[:,f'{name}'])
             le_dictionary[name] = le
-            df.drop(columns=f'{name}', inplace=True)
-            df[f'encoded_{name}'] = new_col
+            self.factors.drop(columns=f'{name}', inplace=True)
+            self.factors[f'encoded_{name}'] = new_col
         print('Finished categorical encoding.')
         return None
 
@@ -906,15 +912,15 @@ class post_merge_process:
         """
         # add flags
         
-        self.new_person_ids(df=df)
-        df = self.birthday_ubiquity(df = df, data_dictionary = data_dictionary)
-        self.add_visit_reason(df=df,data_dictionary= data_dictionary)
-        df, cols_cleared = self.clearing_cols(df=df, threshold = entry_threshold, data_type = 'train')
-        self.fill_nans_gaussian(df)
-        self.fill_zeros_imputation(df)
-        self.categorical_encoding(df)
+        self.new_person_ids()
+        self.birthday_ubiquity()
+        self.add_visit_reason()
+        self.clearing_cols(threshold = entry_threshold)
+        self.fill_nans_gaussian()
+        self.fill_zeros_imputation()
+        self.categorical_encoding()
 
-        return df, cols_cleared
+        return None
 
     def post_join_processing_test(self, col_list: list):
         """
@@ -940,17 +946,17 @@ class post_merge_process:
         """
         # add flags
         
-        self.new_person_ids(df=df)
-        df = self.birthday_ubiquity(df = df, data_dictionary = data_dictionary)
-        self.add_visit_reason(df=df,data_dictionary= data_dictionary)
+        self.new_person_ids()
+        self.birthday_ubiquity()
+        self.add_visit_reason()
         # Note that threshold for clearing_cols is irrelevant if data_type is set to 'test'.
         # Columns will be cleared based on col_list to match columns cleared from training data in most recent run of post_join_processing_train.
         # cols variable unused but function outputs tuple..
-        df, cols = clearing_cols(df=df, threshold = 10000, data_type = 'test', col_list = col_list)
-        self.fill_nans_gaussian(df)
-        self.fill_zeros_imputation(df)
-        self.categorical_encoding(df)
+        self.clearing_cols(threshold = 10000)
+        self.fill_nans_gaussian()
+        self.fill_zeros_imputation()
+        self.categorical_encoding()
         # Since test does not go through later processing that train data does.
-        df.drop(columns=['new_person_id'],inplace=True)
+        self.factors.drop(columns=['new_person_id'],inplace=True)
 
-        return df
+        return None
