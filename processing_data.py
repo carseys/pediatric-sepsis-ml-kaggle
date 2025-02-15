@@ -28,12 +28,8 @@ class initial_intake_process_of_data:
         
 
     def readin_data(self):
-        """ This function reads in test or train data, which must be in folders 'testing_data' and 'training_data' in the same directory.
+        """ This function reads in test or train data, which must be in folders 'testing_data' and 'training_data' in the directory of this file.
 
-        Parameters
-        ----------
-        'self.data_type' : str
-            This must be 'test' or 'train'.
         """
 
         if self.data_type == 'test':
@@ -62,11 +58,6 @@ class initial_intake_process_of_data:
         """ This function adds a UID to each row to establish unique instances between person_id & measurement datetimes for the various tables.
         
         This is not done for the demographics file since the information in it is not sensitive to the hour.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
         
         Details
         -------
@@ -94,11 +85,6 @@ class initial_intake_process_of_data:
     def birthday_management(self) -> None:
         """
         This function processes the 'person_demographics' table of given data, which is inputed as a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
         
         Details
         -------
@@ -137,11 +123,6 @@ class initial_intake_process_of_data:
     def measurement_meds_processing(self) -> None:
         """ This function processes the 'measurement_meds' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
-
         Details
         -------
         * removes body temperature measurements > 46 C
@@ -174,11 +155,6 @@ class initial_intake_process_of_data:
     
     def drugs_exposure_processing(self) -> None:
         """ This function processes the 'drugsexposure' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
 
         Requirements
         ------------
@@ -218,11 +194,6 @@ class initial_intake_process_of_data:
 
     def measurement_lab_processing(self) -> None:
         """ This function processes the 'measurement_lab' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
 
         Requirements
         ------------
@@ -310,11 +281,6 @@ class initial_intake_process_of_data:
     
     def measurement_observation_processing(self) -> None:
         """ This function processes the 'measurement_observation' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
         
         Details
         -------
@@ -335,11 +301,6 @@ class initial_intake_process_of_data:
     def observation_processing(self) -> None:
         """ This function processes the 'observation' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
 
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
-        
         Details
         -------
         * creates csv to verify this table has been processed.
@@ -363,11 +324,6 @@ class initial_intake_process_of_data:
 
     def procedures_processing(self) -> None:
         """ This function processes the 'observation' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
 
         Requirements
         ------------
@@ -402,11 +358,6 @@ class initial_intake_process_of_data:
 
     def devices_processing(self) -> None:
         """ This function processes the 'devices' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
         
         Details
         -------
@@ -449,11 +400,6 @@ class initial_intake_process_of_data:
 
     def sepsis_processing(self) -> None:
         """ This function processes the 'sepsis' table of given data, which is inputed in a dictionary. The data in dictionary is replaced by index, hence function returns nothing.
-
-        Parameters
-        ----------
-        'data_dictionary' : dict
-            A dictionary of pandas DataFrames.
         
         Details
         -------
@@ -480,13 +426,6 @@ class initial_intake_process_of_data:
         """ This function reads in test or train data and goes through functions to preprocess it. For further details see specific functions.
 
         Processed tables will be saved into the /processed folder.
-
-        Parameters
-        ----------
-        'self.data_type' : str
-            This must be 'test' or 'train'. Determines which data to process.
-        'load_tables' : str
-            This must be 'yes' or 'no'. 'yes' means load csvs from processed_data folder, of the type given in 'self.data_type' input. 'no' means process data from training or testing folder, depending on 'self.data_type' input given.
         
         Returns
         -------
@@ -585,8 +524,8 @@ class post_merge_process:
 
         Parameters
         ----------
-        'df': pandas DataFrame
-            This should be a pandas DataFrame which contains a column 'uid' with universal ids, with strings with format s.t. the person_id starts at the 18th index. e.g.: '2021-07-21 12:00:00623183219'
+        None. all are taken in via class initialization.
+
         """
         # assert that uid column exists
         print('Beginning adding new_person_id column based on uids.')
@@ -602,21 +541,17 @@ class post_merge_process:
         print('Finished adding new_person_id column based on uids.')
         return None
     
-    def birthday_ubiquity(self):
+    def birthday_ubiquity(self)-> None:
         """
         This function adds age in months to all rows in df based on uid time and birthday. It also adds gender to all rows in df.
 
         Parameters
         ----------
-        'df': pandas DataFrame
-            This is a pandas DataFrame of patient data that contains a 'new_person_id' column from running new_person_ids function.
-        'data_dictionary': dictionary
-            This is a dictionary of pandas DataFrames, should have a table of 'person_demographics_episode' data. The 'person_demographics_episode' data will be used to establish birthdays and genders for patients who occur in the DataFrame given.
+        None. all are taken in via class initialization.
 
         Returns
         -------
-        'df': pandas DataFrame
-            returns df with age in months and gender for participants with entry in 'person_demographics_episode' from provided data_dictionary.
+        None.
 
         Details
         -------
@@ -642,17 +577,17 @@ class post_merge_process:
             birthday = list(demographics[demographics['person_id']==patient]['birthday_formatted'])[0]
             gender = list(demographics[demographics['person_id']==patient]['gender'])[0]
             unique_demographics_rows.loc[len(unique_demographics_rows)] = [patient, gender, birthday]
-        df = pd.merge(left=df, right=unique_demographics_rows, how='left', on='new_person_id')
-        datetime_temp = df['uid'].copy().apply(lambda x: x[:19])
+        self.factors = pd.merge(left=self.factors, right=unique_demographics_rows, how='left', on='new_person_id')
+        datetime_temp = self.factors['uid'].copy().apply(lambda x: x[:19])
         datetime_temp = pd.to_datetime(datetime_temp)
-        birthday_col = df['birthday'].copy()
+        birthday_col = self.factors['birthday'].copy()
         age = -round((birthday_col-datetime_temp)/np.timedelta64(1,'D')/30)
-        df['age'] = age
-        df.drop(columns=['birthday'], inplace = True)
+        self.factors['age'] = age
+        self.factors.drop(columns=['birthday'], inplace = True)
         print('Birthday ubiquity established.')
-        return df
+        return None
 
-    def add_visit_reason(self):
+    def add_visit_reason(self)-> None:
         """
 
         This function adds 'Admission Reason' column to 'df'. This is done based on the most recent admission reason in the 'observation' table in 'data_dictionary' which occurs at or before the timestamp of a row (via uid).
@@ -661,16 +596,11 @@ class post_merge_process:
         
         Parameters
         ----------
-        'df' : pd.DataFrame
-            DataFrame of data.
-            Taken from init of class.
-        'data_dictionary' : dict
-            dictionary with DataFrames for values.
-            Taken from init of class.
+        None. all are taken in via class initialization.
 
         Returns
         -------
-        none since df is modified inplace.
+        None.
         """
         # assert uid column in df
         # potentially assert observation column in df.
@@ -712,7 +642,7 @@ class post_merge_process:
         
         Parameters
         ----------
-        'df' : pd.DataFrame
+        'factors' : pd.DataFrame
             Taken from init of class.
         """
         # function does not work
@@ -738,20 +668,15 @@ class post_merge_process:
         
         Parameters
         ----------
-        'df' : pd.DataFrame
-            DataFrame of data
-            Taken from init of class.
         'threshold' : int
             number of values needed in a column. If column doesn't have this number of entries, it will be dropped from df. Irrelevant if 'data_type' is set to 'train'.
-        'data_type' : str
-            'train' or 'test'.
         'col_list' : list
             This is a list of columns to clear in test data, based on most recent run of this function with training data.
+            #TODO inputs based on test/train
 
         Returns
         -------
-        'df' : pd.DataFrame
-        'sufficiently_empty_cols' : list
+        None. All would-be returns are set to class variables.
         """
 
         print('Clearing columns.')
@@ -798,9 +723,7 @@ class post_merge_process:
 
         Parameters
         ----------
-        'df' : pd.DataFrame
-            DataFrame of data.
-            Taken from init of class.
+        None. all are taken in via class initialization.
         
         Returns
         -------
@@ -847,8 +770,7 @@ class post_merge_process:
 
         Parameters
         ----------
-        'df' : pd.DataFrame
-            DataFrame of data.
+        None. all are taken in via class initialization.
 
         Returns
         -------
@@ -868,12 +790,11 @@ class post_merge_process:
 
         Parameters
         ----------
-        'df' : pd.DataFrame
-            DataFrame of Data
-
+        None. all are taken in via class initialization.
+        
         Returns
         -------
-        None. df is updated in place.
+        None. factors is updated in place.
         """
         print('Beginning categorical encoding.')
         categorical_cols = list(self.factors.select_dtypes(object).columns)
@@ -896,10 +817,6 @@ class post_merge_process:
 
         Parameters
         ----------
-        'df' : pd.DataFrame
-            This is a DataFrame of patient data.
-        'data_dictionary' : dict
-            This is a dictionary of DataFrames that was presumably used to create the DataFrame df. Data from 'person_demographics_episode' will be used to populate age and gender in df.
         'entry_threshold' : int
             Columns with count of values less than this threshold will be removed. That is, non-NaN values.
         
@@ -930,12 +847,8 @@ class post_merge_process:
 
         Parameters
         ----------
-        'df' : pd.DataFrame
-            This is a DataFrame of patient data.
-        'data_dictionary' : dict
-            This is a dictionary of DataFrames that was presumably used to create the DataFrame df. Data from 'person_demographics_episode' will be used to populate age and gender in df.
-        'entry_threshold' : int
-            Columns with count of values less than this threshold will be removed. That is, non-NaN values.
+        'col_list' : list
+            This is a list of column names to remove based on recent training run.
         
         Details
         -------
