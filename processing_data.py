@@ -500,17 +500,17 @@ class initial_intake_process_of_data:
 
         if self.data_type == 'train':
             if self.load_tables == 'no':
-                training_data = self.readin_data('train')
-                self.add_uids(training_data)
-                self.birthday_management(training_data)
-                self.measurement_meds_processing(training_data)
-                self.drugs_exposure_processing(training_data)
-                self.measurement_lab_processing(training_data)
-                self.procedures_processing(training_data)
-                self.observation_processing(training_data)
-                self.measurement_observation_processing(training_data)
-                self.devices_processing(training_data)
-                self.sepsis_processing(training_data)
+                training_data = self.readin_data()
+                self.add_uids()
+                self.birthday_management()
+                self.measurement_meds_processing()
+                self.drugs_exposure_processing()
+                self.measurement_lab_processing()
+                self.procedures_processing()
+                self.observation_processing()
+                self.measurement_observation_processing()
+                self.devices_processing()
+                self.sepsis_processing()
             else:
                 training_data={}
                 inner_directory = './processed_data/'
@@ -531,17 +531,17 @@ class initial_intake_process_of_data:
 
         else:
             if self.load_tables == 'no':
-                testing_data = self.readin_data('test')
-                self.add_uids(testing_data)
-                self.birthday_management(testing_data)
-                self.measurement_meds_processing(testing_data)
-                self.drugs_exposure_processing(testing_data)
-                self.measurement_lab_processing(testing_data)
-                self.procedures_processing(testing_data)
-                self.observation_processing(testing_data)
-                self.measurement_observation_processing(testing_data)
-                self.devices_processing(testing_data)
-                self.sepsis_processing(testing_data)
+                testing_data = self.readin_data()
+                self.add_uids()
+                self.birthday_management()
+                self.measurement_meds_processing()
+                self.drugs_exposure_processing()
+                self.measurement_lab_processing()
+                self.procedures_processing()
+                self.observation_processing()
+                self.measurement_observation_processing()
+                self.devices_processing()
+                self.sepsis_processing()
             else:
                 training_data={}
                 inner_directory = './processed_data/'
