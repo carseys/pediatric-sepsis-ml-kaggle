@@ -278,8 +278,9 @@ class initial_intake_process_of_data:
         measurement_lab_count['count'].astype(int)
         measurement_lab_rows = pd.DataFrame()
         measurement_lab_extras = measurement_lab_count[measurement_lab_count['count']>1]
-        for j in [i for i in measurement_lab_extras['uid']]:
-            measurement_lab_rows = pd.concat([measurement_lab_rows,measurement_lab[measurement_lab['uid']==j].max().to_frame().T]).reset_index(drop=True)
+        if measurement_lab_extras.empty == False:
+            for j in [i for i in measurement_lab_extras['uid']]:
+                measurement_lab_rows = pd.concat([measurement_lab_rows,measurement_lab[measurement_lab['uid']==j].max().to_frame().T]).reset_index(drop=True)
         # measurement_lab_extras_ind = measurement_lab_extras.index
         # measurement_lab = measurement_lab.drop(index=measurement_lab_extras_ind, axis=1,inplace=False)
         measurement_lab = measurement_lab.drop_duplicates(subset='uid', keep = False, inplace=False)
@@ -400,9 +401,10 @@ class initial_intake_process_of_data:
         devices_count['count'].astype(int)
         devices_rows = []
         devices_extras = devices_count[devices_count['count']>1]
-        for j in tqdm([i for i in devices_extras['uid']]):
-            new_row = devices[devices['uid']==j].max().to_frame().T.values.tolist()
-            devices_rows.extend(new_row)
+        if devices_extras.empty == False:
+            for j in tqdm([i for i in devices_extras['uid']]):
+                new_row = devices[devices['uid']==j].max().to_frame().T.values.tolist()
+                devices_rows.extend(new_row)
 
         devices.drop_duplicates(subset='uid', keep = False, inplace=True)
         devices_rows_df = pd.DataFrame(devices_rows, columns = devices.columns)
