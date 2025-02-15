@@ -295,8 +295,8 @@ class initial_intake_process_of_data:
         # measurement_lab_extras_ind = measurement_lab_extras.index
         # measurement_lab = measurement_lab.drop(index=measurement_lab_extras_ind, axis=1,inplace=False)
         measurement_lab = measurement_lab.drop_duplicates(subset='uid', keep = False, inplace=False)
-
-        measurement_lab = pd.concat([measurement_lab,measurement_lab_rows]).reset_index(drop=True)
+        if measurement_lab_rows.empty == False:
+            measurement_lab = pd.concat([measurement_lab,measurement_lab_rows]).reset_index(drop=True)
 
         col_inds = [not((i.endswith('_id')) or (i=='uid')) for i in list(measurement_lab.columns)]
         col_names = measurement_lab.columns.values[col_inds]
