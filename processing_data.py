@@ -2,13 +2,30 @@ import pandas as pd
 import numpy as np
 import os
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
 from collections import Counter
 from datetime import datetime
 from tqdm import tqdm
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+def fill_from_gaussian(column_value, mean: float, std: float):
+    """"
+    This function imputes NaN values with values sampled from a normal distribution of parameters specified.
+
+    Parameters
+    ----------
+    'column_value'
+        the column value this function is applied to
+    'mean' : float
+        mean of normal distribution sampled.
+    'std': float
+        standard deviation of normal distribution sampled.
+    """
+    if np.isnan(column_value) == True:
+        column_value = np.round(np.random.normal(mean, std, 1)[0], 1)
+    else:
+        column_value = column_value
+    return column_value
 
 class initial_intake_process_of_data:
     """
@@ -698,25 +715,6 @@ class post_merge_process:
 
         return None
     
-    def fill_from_gaussian(column_value, mean: float, std: float):
-        """"
-        This function imputes NaN values with values sampled from a normal distribution of parameters specified.
-
-        Parameters
-        ----------
-        'column_value'
-            the column this is applied to
-        'mean' : float
-            mean of normal distribution sampled.
-        'std': float
-            standard deviation of normal distribution sampled.
-        """
-        if np.isnan(column_value) == True:
-            column_value = np.round(np.random.normal(mean, std, 1)[0], 1)
-        else:
-            column_value = column_value
-        return column_value
-
     def fill_nans_gaussian(self):
         """
         Imputes NaN values in certain columns of df provided, based on online information of typical values by age.
@@ -731,23 +729,23 @@ class post_merge_process:
         """
         print('filling NaN values using Gaussians.')
         
-        self.factors['Body temperature'] = self.factors['Body temperature'].apply(self.fill_from_gaussian, **{'mean': 36.9, 'std': .15})
+        self.factors['Body temperature'] = self.factors['Body temperature'].apply(fill_from_gaussian, **{'mean': 36.9, 'std': .15})
 
-        self.factors.loc[self.factors['age'] <= 12, 'Systolic blood pressure'] = self.factors.loc[self.factors['age'] <= 12, 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 90, 'std': 5})
-        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 105, 'std': 7})
-        self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'] = self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 114, 'std': 7})
-        self.factors.loc[self.factors['age'] >120, 'Systolic blood pressure'] = self.factors.loc[self.factors['age'] >120, 'Systolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 120, 'std': 10})
+        self.factors.loc[self.factors['age'] <= 12, 'Systolic blood pressure'] = self.factors.loc[self.factors['age'] <= 12, 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 90, 'std': 5})
+        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 105, 'std': 7})
+        self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'] = self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 114, 'std': 7})
+        self.factors.loc[self.factors['age'] >120, 'Systolic blood pressure'] = self.factors.loc[self.factors['age'] >120, 'Systolic blood pressure'].apply(fill_from_gaussian, **{'mean': 120, 'std': 10})
 
-        self.factors.loc[self.factors['age'] <= 12, 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'] <= 12, 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 49, 'std': 5})
-        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 60, 'std': 5})
-        self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 70, 'std': 5})
-        self.factors.loc[self.factors['age'] > 120, 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'] > 120, 'Diastolic blood pressure'].apply(self.fill_from_gaussian, **{'mean': 75, 'std': 7})
+        self.factors.loc[self.factors['age'] <= 12, 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'] <= 12, 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 49, 'std': 5})
+        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 60, 'std': 5})
+        self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'].between(60, 120,inclusive='right'), 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 70, 'std': 5})
+        self.factors.loc[self.factors['age'] > 120, 'Diastolic blood pressure'] = self.factors.loc[self.factors['age'] > 120, 'Diastolic blood pressure'].apply(fill_from_gaussian, **{'mean': 75, 'std': 7})
 
-        self.factors.loc[self.factors['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 42, 'std': 4})
-        self.factors.loc[self.factors['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 35, 'std': 4})
-        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 37, 'std': 2})
+        self.factors.loc[self.factors['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'] <= 2, 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 42, 'std': 4})
+        self.factors.loc[self.factors['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'].between(2, 12,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 35, 'std': 4})
+        self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'].between(12, 60,inclusive='right'), 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 37, 'std': 2})
         # > 60 Hematocrit should vary for M vs F but not implemented here
-        self.factors.loc[self.factors['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'].apply(self.fill_from_gaussian, **{'mean': 42, 'std': 2})
+        self.factors.loc[self.factors['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'] = self.factors.loc[self.factors['age'] > 60, 'Hematocrit [Volume Fraction] of Blood'].apply(fill_from_gaussian, **{'mean': 42, 'std': 2})
 
         # df.loc[df['age'] <= 36, 'Glucose [Moles/volume] in Serum or Plasma'] = df.loc[df['age'] <= 36, 'Glucose [Moles/volume] in Serum or Plasma'].apply(fill_from_gaussian, **{'mean': 120, 'std': 30})
         # df.loc[df['age'] > 36, 'Glucose [Moles/volume] in Serum or Plasma'] = df.loc[df['age'] > 36, 'Glucose [Moles/volume] in Serum or Plasma'].apply(fill_from_gaussian, **{'mean': 125, 'std': 25})
