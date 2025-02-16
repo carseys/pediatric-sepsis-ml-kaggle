@@ -5,6 +5,14 @@ import random
 
 
 def format_for_modeling(df):
+    """
+    Splits the data into test and train, returning a dictionary of data and a list of column names for matching with weights values after modeling.
+
+    Parameters
+    ----------
+    'df' : pd.DataFrame
+        DataFrame of data. Should include column "new_person_id".
+    """
     random.seed(10)
     
     df.reset_index()

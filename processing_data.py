@@ -2,8 +2,6 @@ import pandas as pd
 import numpy as np
 import os
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import GroupShuffleSplit
-import random
 from collections import Counter
 from datetime import datetime
 from tqdm import tqdm
@@ -881,43 +879,3 @@ class post_merge_process:
         self.factors.drop(columns=['new_person_id'],inplace=True)
 
         return None
-
-def format_for_modeling(df: pd.DataFrame):
-    """
-    Splits the data into test and train, returning a dictionary of data and a list of column names for matching with weights values after modeling.
-
-    Parameters
-    ----------
-    'df' : pd.DataFrame
-        DataFrame of data. Should include column "new_person_id".
-    """
-    random.seed(10)
-    
-    df.reset_index()
-    person_id_index = np.argmax([column.startswith('new_person_id') for column in df.columns])
-    column_list = []
-    [column_list.append(i) for i in range(1,person_id_index)]
-    [column_list.append(i) for i in range(person_id_index+1,len(df.columns.values))]
-    X = df.iloc[:,column_list].values
-    y = df.iloc[:,0].values
-    person_id = df.iloc[:,person_id_index].values
-    column_names = df.columns.values[column_list]
-
-    gss = GroupShuffleSplit(n_splits=1, test_size=0.2)
-    for train_x_index, test_x_index in gss.split(X=X,y=y,groups=person_id):
-        X_train = X[train_x_index]
-        X_test = X[test_x_index]
-        y_train = y[train_x_index]
-        y_test = y[test_x_index]
-        person_id_train = person_id[train_x_index]
-        person_id_test = person_id[test_x_index]
-        
-    formatted_data = {}
-    formatted_data['X_train'] = X_train
-    formatted_data['X_test'] = X_test
-    formatted_data['y_train'] = y_train
-    formatted_data['y_test'] = y_test
-    formatted_data['person_id_train'] = person_id_train
-    formatted_data['person_id_test'] = person_id_test
-
-    return formatted_data, column_names
