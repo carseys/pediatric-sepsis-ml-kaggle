@@ -10,9 +10,12 @@ Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm
 
 ## Use
 * Install required packages based on requirements.txt
-* Follow examples in modeling.ipynb for using processing functions and modeling processed data.
+* Follow examples in models.ipynb for using processing functions and modeling processed data.
 
 ## Further Description:
+### Dataset challenges
+* The biggest challenge was addressing the sparse nature of the data. See data_visualizations.ipynb to see how sparse.
+
 ### Preprocessing:
 * Removing duplicate entries.
 * Adding 'uid' to all data, a universal ID, based on date/time stamp and person ID.
@@ -36,3 +39,4 @@ Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm
 * Random Forest Model! Adjusted class weights to favor prediction of sepsis label.
 * Gradient Boost Ensemble Model! Adjusted class weights to favor prediction of sepsis label.
 * HistGradientBoostClassifier! Adjusted class weights to favor prediction of sepsis label.
+* See modeling in models.ipynb or use these models via the .pkl files.
