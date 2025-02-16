@@ -9,6 +9,7 @@ This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge ([link](
 Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm, seaborn, matplotlib, os, joblib, datetime.
 
 ## Use
+* Install required packages based on requirements.txt
 * Follow examples in modeling.ipynb for using processing functions and modeling processed data.
 
 ## Further Description:
