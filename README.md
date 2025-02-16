@@ -2,11 +2,15 @@
 
 Early Detection of Pediatric Sepsis ML Modeling
 
-A random forest model which predicts which patients will develop sepsis based on data about their health. For this project, I preprocessed data, developed a model, and visualized model efficacy.
+A set of ML which predict which patients will develop sepsis based on data about their health. For this project, I preprocessed data, developed models, and visualized model efficacy.
 
 This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge ([link](https://www.kaggle.com/competitions/phems-hackathon-early-sepsis-prediction/l)), January-February 2025.
 
 Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm, seaborn, matplotlib, os, joblib, datetime.
+
+## Use
+* Install required packages based on requirements.txt
+* Follow examples in modeling.ipynb for using processing functions and modeling processed data.
 
 ## Further Description:
 ### Preprocessing:
@@ -26,8 +30,8 @@ Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm
 * Encoding categorical data : drugsexposure (drugs, routes), devices, uid, gender.
 * Removing columns with <10000 values in training data. Removing the same columns in test data.
 * Gaussian imputation of values for blood pressure(systolic and diastolic), body temperature, hematocrit based on expected value by age. Based Gaussian distributions on healthy measurement ranges found online.
-* Splitting the labeled train data into training and test. The provided test data isn't labeled because it is used to score for the leaderboard/competition. Thus the training data is split into train and test so that it is still possible to test the model with labels known to evaluate performance and prevent overfitting.
+* Splitting the labeled train data into training and test for training/validation purposes.
 
 ### Modeling
 * Random Forest Model! Adjusted class weights to favor prediction of sepsis label.
-* Gradient Boost Ensemble Model!
+* Gradient Boost Ensemble Model! Adjusted class weights to favor prediction of sepsis label.
