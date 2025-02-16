@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import os
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import GroupShuffleSplit
+import random
 from collections import Counter
 from datetime import datetime
 from tqdm import tqdm
@@ -278,19 +280,25 @@ class initial_intake_process_of_data:
         measurement_lab_count['count'].astype(int)
         measurement_lab_rows = pd.DataFrame()
         measurement_lab_extras = measurement_lab_count[measurement_lab_count['count']>1]
-        if measurement_lab_extras.empty == False:
+        if not measurement_lab_extras.empty and measurement_lab_extras.notnull().any().any():
             for j in [i for i in measurement_lab_extras['uid']]:
                 measurement_lab_rows = pd.concat([measurement_lab_rows,measurement_lab[measurement_lab['uid']==j].max().to_frame().T]).reset_index(drop=True)
         # measurement_lab_extras_ind = measurement_lab_extras.index
         # measurement_lab = measurement_lab.drop(index=measurement_lab_extras_ind, axis=1,inplace=False)
         measurement_lab = measurement_lab.drop_duplicates(subset='uid', keep = False, inplace=False)
-        if measurement_lab_rows.empty == False:
-            measurement_lab = pd.concat([measurement_lab,measurement_lab_rows]).reset_index(drop=True)
 
         col_inds = [not((i.endswith('_id')) or (i=='uid')) for i in list(measurement_lab.columns)]
         col_names = measurement_lab.columns.values[col_inds]
         for column in col_names:
             measurement_lab[column] = measurement_lab[column].astype(float)
+        
+        col_inds = [not((i.endswith('_id')) or (i=='uid')) for i in list(measurement_lab_rows.columns)]
+        col_names = measurement_lab_rows.columns.values[col_inds]
+        for column in col_names:
+            measurement_lab_rows[column] = measurement_lab_rows[column].astype(float)
+        # To address the warning FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated.
+        if measurement_lab_rows.empty == False:
+            measurement_lab = pd.concat([measurement_lab,measurement_lab_rows]).reset_index(drop=True)
 
         measurement_lab.to_csv(f'./processed_data/processed_{measurement_lab_index}.csv')
         self.data_dict[measurement_lab_index] = measurement_lab
@@ -873,3 +881,43 @@ class post_merge_process:
         self.factors.drop(columns=['new_person_id'],inplace=True)
 
         return None
+
+def format_for_modeling(df: pd.DataFrame):
+    """
+    Splits the data into test and train, returning a dictionary of data and a list of column names for matching with weights values after modeling.
+
+    Parameters
+    ----------
+    'df' : pd.DataFrame
+        DataFrame of data. Should include column "new_person_id".
+    """
+    random.seed(10)
+    
+    df.reset_index()
+    person_id_index = np.argmax([column.startswith('new_person_id') for column in df.columns])
+    column_list = []
+    [column_list.append(i) for i in range(1,person_id_index)]
+    [column_list.append(i) for i in range(person_id_index+1,len(df.columns.values))]
+    X = df.iloc[:,column_list].values
+    y = df.iloc[:,0].values
+    person_id = df.iloc[:,person_id_index].values
+    column_names = df.columns.values[column_list]
+
+    gss = GroupShuffleSplit(n_splits=1, test_size=0.2)
+    for train_x_index, test_x_index in gss.split(X=X,y=y,groups=person_id):
+        X_train = X[train_x_index]
+        X_test = X[test_x_index]
+        y_train = y[train_x_index]
+        y_test = y[test_x_index]
+        person_id_train = person_id[train_x_index]
+        person_id_test = person_id[test_x_index]
+        
+    formatted_data = {}
+    formatted_data['X_train'] = X_train
+    formatted_data['X_test'] = X_test
+    formatted_data['y_train'] = y_train
+    formatted_data['y_test'] = y_test
+    formatted_data['person_id_train'] = person_id_train
+    formatted_data['person_id_test'] = person_id_test
+
+    return formatted_data, column_names
