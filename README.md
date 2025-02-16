@@ -26,8 +26,8 @@ Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm
 * Encoding categorical data : drugsexposure (drugs, routes), devices, uid, gender.
 * Removing columns with <10000 values in training data. Removing the same columns in test data.
 * Gaussian imputation of values for blood pressure(systolic and diastolic), body temperature, hematocrit based on expected value by age. Based Gaussian distributions on healthy measurement ranges found online.
-* Splitting the labeled train data into training and test. The provided test data isn't labeled because it is used to score for the leaderboard/competition. Thus the training data is split into train and test so that it is still possible to test the model with labels known to evaluate performance and prevent overfitting.
+* Splitting the labeled train data into training and test for training/validation purposes.
 
 ### Modeling
 * Random Forest Model! Adjusted class weights to favor prediction of sepsis label.
-* Gradient Boost Ensemble Model!
+* Gradient Boost Ensemble Model! Adjusted class weights to favor prediction of sepsis label.
