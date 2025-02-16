@@ -2,11 +2,14 @@
 
 Early Detection of Pediatric Sepsis ML Modeling
 
-A random forest model which predicts which patients will develop sepsis based on data about their health. For this project, I preprocessed data, developed a model, and visualized model efficacy.
+A set of ML which predict which patients will develop sepsis based on data about their health. For this project, I preprocessed data, developed models, and visualized model efficacy.
 
 This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge ([link](https://www.kaggle.com/competitions/phems-hackathon-early-sepsis-prediction/l)), January-February 2025.
 
 Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm, seaborn, matplotlib, os, joblib, datetime.
+
+## Use
+* Follow examples in modeling.ipynb for using processing functions and modeling processed data.
 
 ## Further Description:
 ### Preprocessing:
