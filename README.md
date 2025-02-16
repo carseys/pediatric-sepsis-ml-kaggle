@@ -35,3 +35,4 @@ Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm
 ### Modeling
 * Random Forest Model! Adjusted class weights to favor prediction of sepsis label.
 * Gradient Boost Ensemble Model! Adjusted class weights to favor prediction of sepsis label.
+* HistGradientBoostClassifier! Adjusted class weights to favor prediction of sepsis label.
