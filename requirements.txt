@@ -6,6 +6,5 @@ xgboost
 collections
 datetime
 tqdm
-seaborn
 matplotlib
 joblib
