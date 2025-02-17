@@ -6,7 +6,7 @@ A set of ML which predict which patients will develop sepsis based on data about
 
 This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge ([link](https://www.kaggle.com/competitions/phems-hackathon-early-sepsis-prediction/l)), January-February 2025.
 
-Packages used: pandas, numpy, collections, scikit-learn, xgboost, imblearn, tqdm, seaborn, matplotlib, os, joblib, datetime.
+Packages used: pandas, numpy, collections, scikit-learn, xgboost, tqdm, matplotlib, os, joblib, datetime.
 
 ## Use
 * Install required packages based on requirements.txt
