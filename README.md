@@ -9,12 +9,12 @@ This model was developed for the TUM.ai x PHEMS Online Kaggle Challenge ([link](
 Packages used: pandas, numpy, collections, scikit-learn, xgboost, tqdm, matplotlib, os, joblib, datetime.
 
 ## Use
-* Install required packages based on requirements.txt
-* Follow examples in models.ipynb for using processing functions and modeling processed data.
-* The biggest challenge was addressing the sparse nature of the data. See data_visualizations.ipynb to see how sparse at different points.
-* See processing_data.py for classes and functions to process data before splitting for model training.
-* See modeling.py for function splitting data for model training and function for developing upload file to kaggle.
-* The file processing-and-model-development.ipynb is less organized and was used for developing functions for this project.
+* Install required packages based on `requirements.txt`.
+* Follow examples in `models.ipynb` for using processing functions and modeling processed data.
+* The biggest challenge was addressing the sparse nature of the data. See `data_visualizations.ipynb` to see how sparse at different points.
+* See `processing_data.py` for classes and functions to process data before splitting for model training.
+* See `modeling.py` for function splitting data for model training and function for developing upload file to kaggle.
+* The file `processing-and-model-development.ipynb` is less organized and was used for developing functions for this project.
 
 ## Further Description:
 
