@@ -196,7 +196,7 @@ class initial_intake_process_of_data:
         drugs_count['count'].astype(int)
         drugs_rows = []
         drugs_extras = drugs_count[drugs_count['count']>1]
-        for j in tqdm([i for i in drugs_extras['uid']]):
+        for j in tqdm([i for i in drugs_extras['uid']], desc='adding combined rows'):
             new_row = drugs_exposure[drugs_exposure['uid']==j].max().to_frame().T.values.tolist()
             drugs_rows.extend(new_row)
 
@@ -408,7 +408,7 @@ class initial_intake_process_of_data:
         devices_rows = []
         devices_extras = devices_count[devices_count['count']>1]
         if devices_extras.empty == False:
-            for j in tqdm([i for i in devices_extras['uid']]):
+            for j in tqdm([i for i in devices_extras['uid']], desc='adding combined rows'):
                 new_row = devices[devices['uid']==j].max().to_frame().T.values.tolist()
                 devices_rows.extend(new_row)
 
@@ -647,7 +647,7 @@ class post_merge_process:
 
         most_recent_admission_list = []
 
-        for uid in tqdm(np.unique(self.factors['uid'])):
+        for uid in tqdm(np.unique(self.factors['uid']), desc='listing most recent admission reasons'):
             instance = pd.to_datetime(uid[:19])
             person = int(uid[19:])
             try:
@@ -676,7 +676,7 @@ class post_merge_process:
         
         datetime_temp = self.factors['uid'].copy().apply(lambda x: x[:19])
         self.factors['datetime_temp'] = pd.to_datetime(datetime_temp)
-        for person in tqdm(np.unique(self.factors['new_person_id'])):
+        for person in tqdm(np.unique(self.factors['new_person_id']), desc = 'interpolating WBC'):
             personal_df = self.factors[self.factors['new_person_id']==person].loc[:,['White blood cell count', 'datetime_temp']]
             og_index = personal_df.index
             personal_df.set_index('datetime_temp', inplace=True)
@@ -805,7 +805,7 @@ class post_merge_process:
         print('Beginning categorical encoding.')
         categorical_cols = list(self.factors.select_dtypes(object).columns)
         le_dictionary = {}
-        for name in tqdm(categorical_cols):
+        for name in tqdm(categorical_cols, desc='encoding categorical columns'):
             le = LabelEncoder()
             le.fit(self.factors.loc[:,f'{name}'])
             new_col = le.transform(self.factors.loc[:,f'{name}'])
