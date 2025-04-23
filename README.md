@@ -1,6 +1,13 @@
 # pediatric-sepsis-ml-kaggle
 
-Early Detection of Pediatric Sepsis ML Modeling
+<hackathon-img>
+  <source media="(prefers-color-scheme: dark)" srcset="readme-imgs/tumai_image.jpg">
+  <source media="(prefers-color-scheme: light)" srcset="readme-imgs/phems_online_hackathon_image.jpg">
+  <img alt="Hackathon Cover Image" src="default-image.png">
+</hackathon-img>
+
+
+# Early Detection of Pediatric Sepsis ML Modeling
 
 A set of ML which predict which patients will develop sepsis based on data about their health. For this project, I preprocessed data, developed models, and visualized model efficacy.
 
@@ -36,6 +43,7 @@ Packages used: pandas, numpy, collections, scikit-learn, xgboost, tqdm, matplotl
 * Removing columns with <10000 values in training data. Removing the same columns in test data.
 * Gaussian imputation of values for blood pressure(systolic and diastolic), body temperature, hematocrit based on expected value by age. Based Gaussian distributions on healthy measurement ranges found online.
 * Splitting the labeled train data into training and test for training/validation purposes.
+
 
 ### Modeling
 * Random Forest Model! Adjusted class weights to favor prediction of sepsis label.
