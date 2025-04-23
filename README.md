@@ -1,11 +1,6 @@
 # pediatric-sepsis-ml-kaggle
 
-<hackathon-img>
-  <source media="(prefers-color-scheme: dark)" srcset="readme-imgs/tumai_image.jpg">
-  <source media="(prefers-color-scheme: light)" srcset="readme-imgs/phems_online_hackathon_image.jpg">
-  <img alt="Hackathon Cover Image" src="default-image.png">
-</hackathon-img>
-
+![hackathon-cover-img](readme-imgs/phems_online_hackathon_image.jpg)
 
 # Early Detection of Pediatric Sepsis ML Modeling
 
